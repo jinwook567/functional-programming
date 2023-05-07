@@ -58,16 +58,16 @@ const take = curry((l, iter) => {
   return (function recur(res) {
     while (true) {
       const { done, value } = iterator.next();
-      if (done || res.length === l) break;
+      if (done) break;
 
       if (value instanceof Promise)
         return value
-          .then((val) => recur((res.push(val), res)))
+          .then((val) => ((res.push(val), res).length === l ? res : recur(res)))
           .catch((err) => (err === nop ? recur(res) : Promise.reject(err)));
 
       res.push(value);
+      if (res.length === l) break;
     }
-
     return res;
   })(res);
 });
@@ -143,14 +143,11 @@ const deepFlat = pipe(L.deepFlat, takeAll);
 
 const flatMap = pipe(L.map, flattern);
 
-go(
-  [Promise.resolve(2), Promise.resolve(10), 1],
-  L.filter((a) => a < 11),
-  // L.map((a) => a),
-  // take(2),
-  reduce((a, b) => a + b),
-  log
-);
+const C = {};
+
+C.take = (l, iter) => take(l, [...iter]);
+
+log(Promise.resolve(1).then((val) => val));
 
 module.exports = {
   map,
@@ -169,4 +166,5 @@ module.exports = {
   flattern,
   deepFlat,
   flatMap,
+  C,
 };
