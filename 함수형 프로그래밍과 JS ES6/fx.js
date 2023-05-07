@@ -50,8 +50,7 @@ const take = curry((l, iter) => {
       const { done, value } = iterator.next();
       if (done || res.length === l) break;
 
-      if (value instanceof Promise) value.then((val) => recur((res.push(val), res)));
-
+      if (value instanceof Promise) return value.then((val) => recur((res.push(val), res)));
       res.push(value);
     }
 
@@ -73,9 +72,13 @@ L.map = curry(function* (f, iter) {
   }
 });
 
+const nop = Symbol("nop");
+
 L.filter = curry(function* (f, iter) {
   for (const a of iter) {
-    if (f(a)) yield a;
+    const b = go1(a, f);
+    if (b instanceof Promise) yield b.then((b) => (b ? a : Promise.reject(nop)));
+    else if (b) yield a;
   }
 });
 
@@ -128,12 +131,14 @@ const deepFlat = pipe(L.deepFlat, takeAll);
 
 const flatMap = pipe(L.map, flattern);
 
-log(
-  go(
-    [Promise.resolve(1), Promise.resolve(1), 1],
-    map((a) => a + 10),
-    take(2)
-  ).then(log)
+go(
+  [Promise.resolve(2), Promise.resolve(10), 1],
+  L.filter((a) => a < 10),
+  take(3),
+  log
+  // filter((a) => a < 10),
+  // take(2),
+  // log
 );
 
 module.exports = {
