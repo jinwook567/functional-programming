@@ -145,9 +145,25 @@ const flatMap = pipe(L.map, flattern);
 
 const C = {};
 
-C.take = (l, iter) => take(l, [...iter]);
+function doNothing() {}
 
-log(Promise.resolve(1).then((val) => val));
+const catchNop = (iter) => {
+  console.log(iter);
+  const arr = [...iter];
+  arr.forEach((a) => (a instanceof Promise ? a.catch(doNothing) : a));
+  return arr;
+};
+
+C.reduce = curry((f, acc, iter) =>
+  iter ? reduce(f, acc, catchNop(iter)) : reduce(f, catchNop(acc))
+);
+
+C.take = curry((l, iter) => take(l, catchNop(iter)));
+
+C.takeAll = C.take(Infinity);
+
+C.map = curry(pipe(L.map, C.takeAll));
+C.filter = curry(pipe(L.filter, C.takeAll));
 
 module.exports = {
   map,
