@@ -5,19 +5,25 @@ const curry =
   (a, ..._) =>
     _.length ? f(a, ..._) : (..._) => f(a, ..._);
 
-const reduce = curry((f, acc, iter) => {
-  if (!iter) {
-    iter = acc[Symbol.iterator]();
-    acc = iter.next().value;
-  }
-
-  for (const a of iter) {
-    acc = acc instanceof Promise ? acc.then((acc) => f(acc, a)) : f(acc, a);
-  }
-  return acc;
-});
-
 const go1 = (a, f) => (a instanceof Promise ? a.then(f) : f(a));
+
+const reduce = curry((f, acc, iter) => {
+  const iterator = iter ? iter[Symbol.iterator]() : acc[Symbol.iterator]();
+  if (!iter) {
+    acc = iterator.next().value;
+  }
+
+  return (function recur(acc) {
+    while (true) {
+      const { value, done } = iterator.next();
+      if (done) break;
+
+      acc = go1(acc, (acc) => go1(value, (value) => f(acc, value)));
+      if (acc instanceof Promise) return acc.then(recur);
+    }
+    return acc;
+  })(acc);
+});
 
 const go = (a, ...fs) => {
   return reduce((acc, f) => f(acc), a, fs);
@@ -37,11 +43,20 @@ const range = (l) => {
 
 const take = curry((l, iter) => {
   const res = [];
-  for (const a of iter) {
-    res.push(a);
-    if (res.length === l) break;
-  }
-  return res;
+  const iterator = iter[Symbol.iterator]();
+
+  return (function recur(res) {
+    while (true) {
+      const { done, value } = iterator.next();
+      if (done || res.length === l) break;
+
+      if (value instanceof Promise) value.then((val) => recur((res.push(val), res)));
+
+      res.push(value);
+    }
+
+    return res;
+  })(res);
 });
 
 const L = {};
@@ -54,7 +69,7 @@ L.range = function* (l) {
 
 L.map = curry(function* (f, iter) {
   for (const a of iter) {
-    yield f(a);
+    yield go1(a, f);
   }
 });
 
@@ -113,11 +128,12 @@ const deepFlat = pipe(L.deepFlat, takeAll);
 
 const flatMap = pipe(L.map, flattern);
 
-go(
-  1,
-  (a) => a + 10,
-  (a) => Promise.resolve(a + 10),
-  log
+log(
+  go(
+    [Promise.resolve(1), Promise.resolve(1), 1],
+    map((a) => a + 10),
+    take(2)
+  ).then(log)
 );
 
 module.exports = {
