@@ -5,7 +5,17 @@ const curry =
   (a, ..._) =>
     _.length ? f(a, ..._) : (..._) => f(a, ..._);
 
+const nop = Symbol("nop");
+
 const go1 = (a, f) => (a instanceof Promise ? a.then(f) : f(a));
+
+const reduceF = (acc, a, f) =>
+  a instanceof Promise
+    ? a.then(
+        (val) => f(acc, val),
+        (e) => (e === nop ? acc : Promise.reject(e))
+      )
+    : f(acc, a);
 
 const reduce = curry((f, acc, iter) => {
   const iterator = iter ? iter[Symbol.iterator]() : acc[Symbol.iterator]();
@@ -18,7 +28,7 @@ const reduce = curry((f, acc, iter) => {
       const { value, done } = iterator.next();
       if (done) break;
 
-      acc = go1(acc, (acc) => go1(value, (value) => f(acc, value)));
+      acc = go1(acc, (acc) => reduceF(acc, value, f));
       if (acc instanceof Promise) return acc.then(recur);
     }
     return acc;
@@ -50,7 +60,11 @@ const take = curry((l, iter) => {
       const { done, value } = iterator.next();
       if (done || res.length === l) break;
 
-      if (value instanceof Promise) return value.then((val) => recur((res.push(val), res)));
+      if (value instanceof Promise)
+        return value
+          .then((val) => recur((res.push(val), res)))
+          .catch((err) => (err === nop ? recur(res) : Promise.reject(err)));
+
       res.push(value);
     }
 
@@ -71,8 +85,6 @@ L.map = curry(function* (f, iter) {
     yield go1(a, f);
   }
 });
-
-const nop = Symbol("nop");
 
 L.filter = curry(function* (f, iter) {
   for (const a of iter) {
@@ -133,12 +145,11 @@ const flatMap = pipe(L.map, flattern);
 
 go(
   [Promise.resolve(2), Promise.resolve(10), 1],
-  L.filter((a) => a < 10),
-  take(3),
-  log
-  // filter((a) => a < 10),
+  L.filter((a) => a < 11),
+  // L.map((a) => a),
   // take(2),
-  // log
+  reduce((a, b) => a + b),
+  log
 );
 
 module.exports = {
