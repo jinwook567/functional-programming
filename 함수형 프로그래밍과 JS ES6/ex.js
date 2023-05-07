@@ -9,10 +9,12 @@ const {
   range,
   L,
   take,
+  takeAll,
   join,
   find,
   flattern,
   deepFlat,
+  C,
 } = require("./fx");
 
 const products = [
@@ -98,7 +100,13 @@ const arr = [1, 2, 3, [1, 2, 3, [1, 2, 3, 4, 5]]];
 
 const go1 = (f, a) => (a instanceof Promise ? a.then(f) : f(a));
 
-const delay100 = (a) => new Promise((resolve) => setTimeout(() => resolve(a), 100));
+const delay100 = (a) =>
+  new Promise((resolve) =>
+    setTimeout(() => {
+      console.log("im starated");
+      resolve(a);
+    }, 2000)
+  );
 
 // go1((a) => a + 10, delay100(10)).then(log);
 
@@ -114,4 +122,51 @@ const getUserById = (id) => find((user) => user.id === id, users);
 
 const g = getUserById;
 
-log(f(g(1)));
+// go(
+//   [delay100(1), delay100(1), delay100(10)],
+//   L.filter((a) => a < 10),
+//   log
+// );
+
+// go(
+//   [1, 2, 3, 4, 5, 6, 7],
+//   L.map((a) => {
+//     log(a);
+//     return new Promise((resolve) => setTimeout(resolve(a), 3000));
+//   }),
+//   L.filter((a) => {
+//     log(a);
+//     return a < 10;
+//   }),
+//   takeAll
+// );
+
+go(
+  [1, 2, 3, 4, 5, 6, 7, 8],
+  L.map((a) => {
+    log(a);
+    return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
+  }),
+  L.filter((a) => {
+    log(a);
+    return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
+  }),
+  take(2),
+  reduce(sum),
+  log
+);
+
+go(
+  [1, 2, 3, 4, 5, 6, 7, 8],
+  L.map((a) => {
+    log(a);
+    return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
+  }),
+  L.filter((a) => {
+    log(a);
+    return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
+  }),
+  C.take(2),
+  reduce(sum),
+  log
+);
