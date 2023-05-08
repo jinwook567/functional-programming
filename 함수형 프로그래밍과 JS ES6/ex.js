@@ -141,32 +141,69 @@ const g = getUserById;
 //   takeAll
 // );
 
-go(
-  [1, 2, 3, 4, 5, 6, 7, 8],
-  L.map((a) => {
-    log(a);
-    return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
-  }),
-  L.filter((a) => {
-    log(a);
-    return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
-  }),
-  take(2),
-  reduce(sum),
-  log
-);
+// go(
+//   [1, 2, 3, 4, 5, 6, 7, 8],
+//   L.map((a) => {
+//     log(a);
+//     return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
+//   }),
+//   L.filter((a) => {
+//     log(a);
+//     return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
+//   }),
+//   take(2),
+//   reduce(sum),
+//   log
+// );
 
-go(
-  [1, 2, 3, 4, 5, 6, 7, 8],
-  L.map((a) => {
-    log(a);
-    return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
-  }),
-  L.filter((a) => {
-    log(a);
-    return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
-  }),
-  C.take(2),
-  reduce(sum),
-  log
-);
+// go(
+//   [1, 2, 3, 4, 5, 6, 7, 8],
+//   L.map((a) => {
+//     log(a);
+//     return new Promise((resolve) => setTimeout(() => resolve(a * a), 1000));
+//   }),
+//   L.filter((a) => {
+//     log(a);
+//     return new Promise((resolve) => setTimeout(() => resolve(a % 2), 1000));
+//   }),
+//   C.take(2),
+//   reduce(sum),
+//   log
+// );
+
+// 동기, 비동기 에러 핸들링 시 파이프라인의 이점
+// 함수의 안전한 합성.
+function sync(list) {
+  try {
+    return go(
+      list,
+      map((a) => JSON.parse(a)),
+      filter((a) => a < 10),
+      take(2),
+      log
+    );
+  } catch (e) {
+    log("catch error..");
+    log(e);
+  }
+}
+
+// sync(["1", "10", "2", "3", "{"]);
+
+// go 함수가 Promise reject을 반환하기에, try catch문으로 안전하게 에러 핸들링을 할 수 있음.
+async function async(list) {
+  try {
+    return await go(
+      list,
+      map((a) => JSON.parse(a)),
+      filter((a) => a < 10),
+      take(2),
+      log
+    );
+  } catch (e) {
+    log(e);
+    return [];
+  }
+}
+
+// async(["1", "10", "2", "3", "{"]).then(log).catch(log);
