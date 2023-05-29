@@ -1,0 +1,93 @@
+<script src="https://unpkg.com/rxjs@^7/dist/bundles/rxjs.umd.min.js"></script>
+
+<script>
+  const log = console.log;
+</script>
+
+<script>
+  const { generate, of, from, range, fromEvent, Observable, interval } = rxjs;
+
+  const obs$ = generate(
+    15,
+    (x) => x < 30,
+    (x) => x + 2
+  );
+  const obs1$ = of(1, 2, 3, 4, 5);
+  const obs2$ = from([6, 7, 8, 9, 10]);
+  const obs3$ = range(100, 10);
+  const obs4$ = fromEvent(document, "click");
+  const errorObs$ = new Observable((subscriber) => {
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    throw "error";
+    subscriber.complete();
+  });
+</script>
+
+<script>
+  const observer = {
+    next: log,
+    error: (err) => console.error(err, "e"),
+    complete: () => log("발행 완료"),
+  };
+
+  //   errorObs$.subscribe(observer);
+  //   errorObs$.subscribe(
+  //     log,
+  //     (err) => console.error(err),
+  //     () => log("발행완료")
+  //   );
+</script>
+
+<script>
+  const { filter, map, take, tap } = rxjs.operators;
+
+  // 완전히 lazy하게 동작함.
+  // obs1$
+  //   .pipe(
+  //     filter((v) => v < 5),
+  //     tap(log),
+  //     map((v) => v + 10),
+  //     take(3)
+  //   )
+  //   .subscribe(log);
+</script>
+
+<script>
+  const { Subject, BehaviorSubject, ReplaySubject } = rxjs;
+
+  const subject = new Subject();
+
+  // subject.subscribe(log);
+
+  // interval(1000).subscribe(subject);
+
+  // setTimeout(() => {
+  //   subject.subscribe((v) => log(v, 1));
+  // }, 1000);
+</script>
+
+<script>
+  const behaviorSub = new BehaviorSubject(1000);
+
+  behaviorSub.subscribe(log);
+
+  behaviorSub.next(1);
+  behaviorSub.next(2);
+  behaviorSub.next(3);
+</script>
+
+<script>
+  const replaySub = new ReplaySubject(3);
+
+  replaySub.subscribe(log);
+
+  behaviorSub.next(1);
+  behaviorSub.next(2);
+  behaviorSub.next(3);
+
+  replaySub.subscribe(log);
+  behaviorSub.next(4);
+  behaviorSub.next(5);
+</script>
